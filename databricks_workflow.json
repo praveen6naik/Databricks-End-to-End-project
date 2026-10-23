@@ -1,0 +1,107 @@
+{
+  "name": "E-Commerce Medallion Lakehouse Pipeline",
+  "description": "Production end-to-end Medallion pipeline on Unity Catalog with Auto Loader, SCD Type 2, Kimball Star Schema, and Power BI-optimized dimensional model.",
+  "email_notifications": {
+    "no_alert_for_skipped_runs": false
+  },
+  "webhook_notifications": {},
+  "timeout_seconds": 7200,
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "01_Config_Init",
+      "description": "Initializes Unity Catalog catalogs (bronze_prod, silver_prod, gold_prod), schemas, and volumes.",
+      "notebook_task": {
+        "notebook_path": "01_Config",
+        "source": "WORKSPACE"
+      },
+      "job_cluster_key": "pipeline_cluster",
+      "timeout_seconds": 1800
+    },
+    {
+      "task_key": "00_Data_Generator",
+      "description": "Generates synthetic raw e-commerce data into the landing volume for initial/incremental CDC loads.",
+      "depends_on": [
+        {
+          "task_key": "01_Config_Init"
+        }
+      ],
+      "notebook_task": {
+        "notebook_path": "00_Data_Generator",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "batch_mode": "initial"
+        }
+      },
+      "job_cluster_key": "pipeline_cluster",
+      "timeout_seconds": 1800
+    },
+    {
+      "task_key": "02_Bronze_Ingestion",
+      "description": "Streams raw files into bronze_prod.ecommerce managed Delta tables via Auto Loader with schema inference.",
+      "depends_on": [
+        {
+          "task_key": "00_Data_Generator"
+        }
+      ],
+      "notebook_task": {
+        "notebook_path": "02_Bronze_Layer",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "p_dataset": "all"
+        }
+      },
+      "job_cluster_key": "pipeline_cluster",
+      "timeout_seconds": 3600
+    },
+    {
+      "task_key": "03_Silver_Conformed_SCD2",
+      "description": "Cleanses, applies PII tags, and implements SCD Type 2 MERGE into silver_prod domain schemas.",
+      "depends_on": [
+        {
+          "task_key": "02_Bronze_Ingestion"
+        }
+      ],
+      "notebook_task": {
+        "notebook_path": "03_Silver_Layer",
+        "source": "WORKSPACE"
+      },
+      "job_cluster_key": "pipeline_cluster",
+      "timeout_seconds": 3600
+    },
+    {
+      "task_key": "04_Gold_Marts_StarSchema",
+      "description": "Builds Power BI date dimension, Kimball Star Schema, point-in-time fact orders, and business reporting tables in gold_prod.",
+      "depends_on": [
+        {
+          "task_key": "03_Silver_Conformed_SCD2"
+        }
+      ],
+      "notebook_task": {
+        "notebook_path": "04_Gold_Layer",
+        "source": "WORKSPACE"
+      },
+      "job_cluster_key": "pipeline_cluster",
+      "timeout_seconds": 3600
+    }
+  ],
+  "job_clusters": [
+    {
+      "job_cluster_key": "pipeline_cluster",
+      "new_cluster": {
+        "spark_version": "14.3.x-scala2.12",
+        "spark_conf": {
+          "spark.master": "local[*]",
+          "spark.databricks.cluster.profile": "singleNode"
+        },
+        "custom_tags": {
+          "ResourceClass": "SingleNode"
+        },
+        "node_type_id": "Standard_D4s_v5",
+        "driver_node_type_id": "Standard_D4s_v5",
+        "num_workers": 0
+      }
+    }
+  ],
+  "format": "MULTI_TASK"
+}
