@@ -1,0 +1,67 @@
+name: Daily REST API Extraction Pipeline
+
+on:
+  schedule:
+    # Runs daily at 06:00 UTC (6:00 AM)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      batch_date:
+        description: 'Target extraction date (YYYY-MM-DD or yesterday)'
+        required: false
+        default: 'yesterday'
+      upload_to_databricks:
+        description: 'Upload directly to Databricks Unity Catalog Volume'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  extract-and-stage:
+    name: Extract Previous-Day Records & Stage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Test Suite
+        run: |
+          python -m unittest discover -s tests
+
+      - name: Execute Daily Extraction
+        id: extract
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          BATCH_DATE: ${{ github.event.inputs.batch_date || 'yesterday' }}
+        run: |
+          echo "Starting daily extraction for date: ${BATCH_DATE}"
+          python extract_api.py \
+            --date "${BATCH_DATE}" \
+            --output-dir "./landing_data/api_orders" \
+            --volume-target-path "bronze_prod/ecommerce/raw_landing/api_orders" \
+            ${{ (github.event.inputs.upload_to_databricks == 'true' || github.event_name == 'schedule') && '--upload-to-volume' || '' }}
+
+      - name: Upload Extracted JSON as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-extracted-orders-${{ github.event.inputs.batch_date || 'yesterday' }}
+          path: landing_data/api_orders/
+          retention-days: 90
+          if-no-files-found: warn

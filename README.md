@@ -17,18 +17,28 @@ This project demonstrates advanced data engineering practices including **Auto L
 
 ```mermaid
 flowchart TD
-    subgraph DataGen["00. Synthetic Data Generator"]
+    subgraph Schedulers["Daily Orchestration (0 6 * * * / 6:00 AM UTC)"]
+        GHA["GitHub Actions Cron<br/><i>(Lightweight / Free CI/CD)</i>"]
+        DBW["Databricks Workflows Quartz Cron<br/><i>(Enterprise Lakehouse Job)</i>"]
+    end
+
+    subgraph Extraction["Daily REST API Extraction"]
+        EXT["<b>extract_api.py / 01_Extract_API_Task.ipynb</b><br/>• Filters: created_at >= yesterday<br/>• Resilient requests.Session (429/5xx backoff)<br/>• Partitioned JSON output (year/month/day)"]
+    end
+
+    subgraph DataGen["00. Synthetic Baseline Generator"]
         DG["00_Data_Generator.ipynb<br/><i>(Generates Orders, Products, Customers, Region with CDC updates)</i>"]
     end
 
     subgraph VolumeLanding["Unity Catalog Volumes (bronze_prod.ecommerce)"]
-        V["/Volumes/bronze_prod/ecommerce/raw_landing/<br/>• /customers/<br/>• /products/<br/>• /orders/<br/>• /region/"]
+        V["/Volumes/bronze_prod/ecommerce/raw_landing/<br/>• /api_orders/ (JSON)<br/>• /customers/<br/>• /products/<br/>• /orders/<br/>• /region/"]
     end
 
     subgraph BronzeCatalog["CATALOG: bronze_prod (Raw Ingestion)"]
-        B["<b>02_Bronze_Layer.ipynb</b><br/>Auto Loader (cloudFiles) + trigger(availableNow=True)<br/>Schema Evolution & _rescued_data Tracking"]
+        B["<b>02_Bronze_Layer.ipynb</b><br/>Auto Loader (cloudFiles Parquet & JSON)<br/>Schema Evolution & _rescued_data Tracking"]
         
         subgraph BronzeSchema["Schema: ecommerce"]
+            BT0[("ecommerce.api_orders_bronze<br/><i>(Raw API JSON Stream)</i>")]
             BT1[("ecommerce.orders")]
             BT2[("ecommerce.products")]
             BT3[("ecommerce.customers")]
@@ -37,13 +47,13 @@ flowchart TD
     end
 
     subgraph SilverCatalog["CATALOG: silver_prod (Conformed & Governed)"]
-        S["<b>03_Silver_Layer.ipynb (Single Notebook)</b><br/>Cleansing, PII Tagging, SCD Type 2 MERGE<br/>Data Quality & Referential Assertions"]
+        S["<b>03_Silver_Layer.ipynb (Single Notebook)</b><br/>Cleansing, PII Tagging, SCD Type 2 MERGE<br/>Delta Lake MERGE Deduplication on order_id"]
         
         subgraph SilverCust["Schema: customers [PII Tagged]"]
             ST1[("customers<br/><i>(SCD Type 2 History)</i>")]
         end
         subgraph SilverSales["Schema: orders"]
-            ST2[("orders<br/><i>(Cleaned Transactions)</i>")]
+            ST2[("orders<br/><i>(Cleaned & Deduplicated)</i>")]
         end
         subgraph SilverProd["Schema: products"]
             ST3[("products<br/><i>(SCD Type 2 History)</i>")]
@@ -54,10 +64,11 @@ flowchart TD
     end
 
     subgraph GoldCatalog["CATALOG: gold_prod (Business Consumption)"]
-        G["<b>04_Gold_Layer.ipynb (Single Notebook)</b><br/>Point-in-Time Fact Joins, Star Schema<br/>Business Reporting Tables"]
+        G["<b>04_Gold_Layer.ipynb (Single Notebook)</b><br/>Point-in-Time Fact Joins, Star Schema<br/>Business Reporting & Daily KPI Tables"]
         
         subgraph GoldSales["Schema: sales"]
             GT5[("fact_orders<br/><i>(Point-in-Time Keyed Fact)</i>")]
+            M0[("daily_kpis<br/><i>(Daily Orders, Revenue, AOV, Rates)</i>")]
             M1[("daily_sales_by_region")]
             M2[("sales_performance")]
         end
@@ -81,16 +92,18 @@ flowchart TD
     end
 
     %% Flow Connections
+    GHA & DBW -.->|"Triggers 6:00 AM Daily"| EXT
+    EXT -->|"Writes JSON"| V
     DG -->|"Writes Parquet"| V
     V -->|"Streams from Volume"| B
-    B --> BT1 & BT2 & BT3 & BT4
+    B --> BT0 & BT1 & BT2 & BT3 & BT4
 
-    BT1 & BT2 & BT3 & BT4 -->|"Reads Raw"| S
+    BT0 & BT1 & BT2 & BT3 & BT4 -->|"Reads Raw & Deduplicates"| S
     S --> ST1 & ST2 & ST3 & ST4
 
     ST1 & ST2 & ST3 & ST4 -->|"Reads Conformed & SCD2"| G
     G --> GT1 & GT2 & GT3 & GT4 & GT5
-    GT5 --> M1 & M2 & M5 & M6
+    GT5 --> M0 & M1 & M2 & M5 & M6
     GT1 & GT5 --> M3 & M4
 ```
 
@@ -172,13 +185,21 @@ A continuous calendar from **2020-01-01 to 2030-12-31** (4,018 days) engineered 
 ## Repository Structure
 
 ```
+├── .github/
+│   └── workflows/
+│       └── daily_extract.yml   # GitHub Actions daily cron (0 6 * * *) workflow
 ├── 00_Data_Generator.ipynb     # Standalone synthetic source data generator (CDC & SCD2 testing)
 ├── 01_Config.ipynb             # Centralized catalog, schema, volume setup & init_environment()
-├── 02_Bronze_Layer.ipynb       # Auto Loader streaming ingestion into bronze_prod.ecommerce.*
-├── 03_Silver_Layer.ipynb       # Single consolidated Silver notebook (Cleansing, PII & SCD Type 2)
-├── 04_Gold_Layer.ipynb         # Single consolidated Gold notebook (Star Schema, PBI Date Table & Marts)
+├── 01_Extract_API_Task.ipynb   # Databricks workflow task for previous-day REST API extraction
+├── 02_Bronze_Layer.ipynb       # Auto Loader streaming ingestion (Parquet & JSON)
+├── 03_Silver_Layer.ipynb       # Single Silver notebook (Cleansing, PII, SCD Type 2 & Deduplication)
+├── 04_Gold_Layer.ipynb         # Single Gold notebook (Star Schema, Power BI Date Table & Daily KPIs)
 ├── Run_Pipeline.ipynb          # End-to-end master pipeline orchestrator
-├── databricks_workflow.json    # Production multi-task Databricks Workflow job definition
+├── extract_api.py              # Standalone resilient Python REST API extractor (requests + retries)
+├── requirements.txt            # Python dependencies (requests, python-dateutil, python-dotenv)
+├── tests/
+│   └── test_extract.py         # Unit tests for date windowing, mock generator, and NDJSON writing
+├── databricks_workflow.json    # Production multi-task Databricks Workflow job definition with cron
 ├── README.md                   # Complete architectural documentation & portfolio guide
 └── .gitignore                  # Standard Databricks / Python ignore rules
 ```
@@ -209,7 +230,18 @@ A continuous calendar from **2020-01-01 to 2030-12-31** (4,018 days) engineered 
    ```bash
    databricks jobs create --json-file databricks_workflow.json
    ```
-3. Run the automated multi-task DAG pipeline.
+3. Run the automated multi-task DAG pipeline scheduled daily at 06:00 UTC (`0 0 6 * * ?`).
+
+### Option 4: Run Daily Python REST API Extractor (CLI or CI/CD)
+1. **Local CLI Execution**:
+   ```bash
+   pip install -r requirements.txt
+   python extract_api.py --date yesterday --output-dir ./landing_data/api_orders
+   ```
+2. **GitHub Actions (Automated Daily 6:00 AM UTC)**:
+   - Configured in `.github/workflows/daily_extract.yml`.
+   - Runs automatically on cron `0 6 * * *` or via manual **Run workflow** in the GitHub Actions tab.
+   - Saves extracted JSON as 90-day build artifacts and optionally pushes directly to Databricks Volume when secrets `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are provided.
 
 ---
 

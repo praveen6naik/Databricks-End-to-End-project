@@ -19,6 +19,24 @@
       "timeout_seconds": 1800
     },
     {
+      "task_key": "01_Extract_API",
+      "description": "Extracts previous day's order records (created_at >= yesterday) via REST API in JSON format into Unity Catalog landing volume.",
+      "depends_on": [
+        {
+          "task_key": "01_Config_Init"
+        }
+      ],
+      "notebook_task": {
+        "notebook_path": "01_Extract_API_Task",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "p_date": "yesterday"
+        }
+      },
+      "job_cluster_key": "pipeline_cluster",
+      "timeout_seconds": 1800
+    },
+    {
       "task_key": "00_Data_Generator",
       "description": "Generates synthetic raw e-commerce data into the landing volume for initial/incremental CDC loads.",
       "depends_on": [
@@ -42,6 +60,9 @@
       "depends_on": [
         {
           "task_key": "00_Data_Generator"
+        },
+        {
+          "task_key": "01_Extract_API"
         }
       ],
       "notebook_task": {
@@ -103,5 +124,10 @@
       }
     }
   ],
-  "format": "MULTI_TASK"
+  "format": "MULTI_TASK",
+  "schedule": {
+    "quartz_cron_expression": "0 0 6 * * ?",
+    "timezone_id": "UTC",
+    "pause_status": "UNPAUSED"
+  }
 }

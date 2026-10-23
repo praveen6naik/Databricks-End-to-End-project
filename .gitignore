@@ -46,3 +46,8 @@ desktop.ini
 checkpoint/
 checkpoints/
 *.log
+
+# Data Landing
+landing_data/
+raw_data/
+
