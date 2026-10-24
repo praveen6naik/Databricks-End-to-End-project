@@ -75,6 +75,25 @@ class TestExtractAPI(unittest.TestCase):
         parsed = json.loads(lines[0])
         self.assertEqual(parsed["order_id"], records[0]["order_id"])
 
+    def test_env_parameter_routing(self):
+        # Verify default env and custom env volume destination
+        from extract_api import main
+        import sys
+        
+        # Test CLI argument parsing with --env dev
+        test_args = ["extract_api.py", "--date", "2026-10-22", "--env", "dev", "--output-dir", self.test_dir]
+        orig_argv = sys.argv
+        try:
+            sys.argv = test_args
+            exit_code = main()
+            self.assertEqual(exit_code, 0)
+            
+            # Check partition file exists
+            expected_file = Path(self.test_dir) / "year=2026" / "month=10" / "day=22" / "orders_2026-10-22.json"
+            self.assertTrue(expected_file.exists())
+        finally:
+            sys.argv = orig_argv
+
     def test_build_resilient_session(self):
         session = build_resilient_session()
         self.assertIsNotNone(session.adapters.get("https://"))

@@ -7,7 +7,7 @@
 [![Power BI Ready](https://img.shields.io/badge/BI-Power%20BI%20Optimized-F2C811?logo=powerbi&logoColor=black)](https://powerbi.microsoft.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-An enterprise-grade, production-ready **Medallion Architecture (Bronze $\rightarrow$ Silver $\rightarrow$ Gold)** data pipeline built on **Azure Databricks** with **Unity Catalog 3-Level Namespace** (`<catalog>.<schema>.<table>`). 
+An enterprise-grade, production-ready **Medallion Architecture (Bronze $\rightarrow$ Silver $\rightarrow$ Gold)** data pipeline built on **Azure Databricks** with **Unity Catalog 3-Level Namespace** (`<catalog>.<schema>.<table>`) featuring **Multi-Environment Isolation (`dev` $\rightarrow$ `prod`)** and zero-copy Delta cloning. 
 
 This project demonstrates advanced data engineering practices including **Auto Loader streaming ingestion**, **SCD Type 2 (Slowly Changing Dimensions) with Delta Lake MERGE**, **point-in-time fact table joins**, **PII governance tags**, and a **Power BI-optimized dimensional model**.
 
@@ -108,6 +108,47 @@ flowchart TD
 ```
 
 ---
+
+
+---
+
+## Multi-Environment Architecture & Dev $\rightarrow$ Prod Promotion Strategy
+
+The entire platform is engineered around **strict environment isolation** with zero code divergence between development and production.
+
+```
+┌──────────────────────────────────────────────┐          ┌──────────────────────────────────────────────┐
+│        DEVELOPMENT (target_env = 'dev')      │          │       PRODUCTION (target_env = 'prod')       │
+├──────────────────────────────────────────────┤          ├──────────────────────────────────────────────┤
+│ • Catalogs: bronze_dev, silver_dev, gold_dev │  PROACT  │ • Catalogs: bronze_prod, silver_prod, ...    │
+│ • Volume:   /Volumes/bronze_dev/...          │  SHALLOW │ • Volume:   /Volumes/bronze_prod/...         │
+│ • Checkpoint: /Volumes/bronze_dev/checkpoints│  CLONE   │ • Checkpoint: /Volumes/bronze_prod/...       │
+│ • Schedule:  On-Demand / Interactive Testing │ ◄─────── │ • Schedule: Daily 6:00 AM UTC (0 0 6 * * ?)  │
+└──────────────────────┬───────────────────────┘          └──────────────────────▲───────────────────────┘
+                       │                                                         │
+                       └─────────────────── PROMOTED PIPELINE ───────────────────┘
+                                   (Runs with target_env = 'prod')
+```
+
+### 1. Unified Codebase with Parameterized Namespace
+No code is duplicated between environments. All notebooks and scripts dynamically resolve their catalogs, landing paths, and streaming checkpoints using `target_env` from `01_Config`:
+- **Development**: `bronze_dev`, `silver_dev`, `gold_dev`
+- **Production**: `bronze_prod`, `silver_prod`, `gold_prod`
+- **Landing Volumes**: `/Volumes/bronze_{env}/ecommerce/raw_landing/`
+- **Checkpoints**: `/Volumes/bronze_{env}/ecommerce/checkpoints/` (Streaming checkpoints are isolated so Dev tests never corrupt or lock production state).
+
+### 2. Zero-Copy Shallow Clone (`clone_prod_to_dev`)
+When testing schema changes or business transformations in Dev, developers can instant-snapshot realistic production tables using native Delta Lake **zero-copy shallow cloning**:
+```python
+# In 01_Config or Run_Pipeline (target_env = "dev")
+clone_prod_to_dev(source_env="prod", target_env="dev")
+```
+This references production metadata without copying underlying parquet data, allowing realistic tests with zero additional storage costs.
+
+### 3. Promotion Lifecycle
+1. **Develop & Test in Dev**: Run `Run_Pipeline.ipynb` with `target_env = "dev"`.
+2. **Verify Assertions & KPIs**: Confirm data quality and inspect KPI aggregations in `gold_dev.sales.daily_kpis`.
+3. **Promote via Workflow**: Run `databricks_workflow.json` with job parameter `target_env = "prod"`.
 
 ## Unity Catalog 3-Level Namespace Structure (`<catalog>.<schema>.<table>`)
 
