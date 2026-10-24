@@ -13,7 +13,10 @@
       "description": "Initializes Unity Catalog catalogs (bronze_prod, silver_prod, gold_prod), schemas, and volumes.",
       "notebook_task": {
         "notebook_path": "01_Config",
-        "source": "WORKSPACE"
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "target_env": "{{job.parameters.target_env}}"
+        }
       },
       "job_cluster_key": "pipeline_cluster",
       "timeout_seconds": 1800
@@ -30,7 +33,8 @@
         "notebook_path": "01_Extract_API_Task",
         "source": "WORKSPACE",
         "base_parameters": {
-          "p_date": "yesterday"
+          "p_date": "yesterday",
+          "target_env": "{{job.parameters.target_env}}"
         }
       },
       "job_cluster_key": "pipeline_cluster",
@@ -48,7 +52,8 @@
         "notebook_path": "00_Data_Generator",
         "source": "WORKSPACE",
         "base_parameters": {
-          "batch_mode": "initial"
+          "batch_mode": "initial",
+          "target_env": "{{job.parameters.target_env}}"
         }
       },
       "job_cluster_key": "pipeline_cluster",
@@ -69,7 +74,8 @@
         "notebook_path": "02_Bronze_Layer",
         "source": "WORKSPACE",
         "base_parameters": {
-          "p_dataset": "all"
+          "p_dataset": "all",
+          "target_env": "{{job.parameters.target_env}}"
         }
       },
       "job_cluster_key": "pipeline_cluster",
@@ -85,7 +91,10 @@
       ],
       "notebook_task": {
         "notebook_path": "03_Silver_Layer",
-        "source": "WORKSPACE"
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "target_env": "{{job.parameters.target_env}}"
+        }
       },
       "job_cluster_key": "pipeline_cluster",
       "timeout_seconds": 3600
@@ -100,7 +109,10 @@
       ],
       "notebook_task": {
         "notebook_path": "04_Gold_Layer",
-        "source": "WORKSPACE"
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "target_env": "{{job.parameters.target_env}}"
+        }
       },
       "job_cluster_key": "pipeline_cluster",
       "timeout_seconds": 3600
@@ -129,5 +141,11 @@
     "quartz_cron_expression": "0 0 6 * * ?",
     "timezone_id": "UTC",
     "pause_status": "UNPAUSED"
-  }
+  },
+  "parameters": [
+    {
+      "name": "target_env",
+      "default": "dev"
+    }
+  ]
 }

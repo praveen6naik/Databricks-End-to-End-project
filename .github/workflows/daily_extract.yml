@@ -2,10 +2,18 @@ name: Daily REST API Extraction Pipeline
 
 on:
   schedule:
-    # Runs daily at 06:00 UTC (6:00 AM)
+    # Runs daily at 06:00 UTC (6:00 AM) in Production
     - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
+      target_env:
+        description: 'Target environment (dev | prod)'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: 'dev'
       batch_date:
         description: 'Target extraction date (YYYY-MM-DD or yesterday)'
         required: false
@@ -49,19 +57,20 @@ jobs:
           API_KEY: ${{ secrets.API_KEY }}
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          TARGET_ENV: ${{ github.event.inputs.target_env || (github.event_name == 'schedule' && 'prod' || 'dev') }}
           BATCH_DATE: ${{ github.event.inputs.batch_date || 'yesterday' }}
         run: |
-          echo "Starting daily extraction for date: ${BATCH_DATE}"
+          echo "Starting daily extraction for date: ${BATCH_DATE} in environment: ${TARGET_ENV}"
           python extract_api.py \
             --date "${BATCH_DATE}" \
+            --env "${TARGET_ENV}" \
             --output-dir "./landing_data/api_orders" \
-            --volume-target-path "bronze_prod/ecommerce/raw_landing/api_orders" \
             ${{ (github.event.inputs.upload_to_databricks == 'true' || github.event_name == 'schedule') && '--upload-to-volume' || '' }}
 
       - name: Upload Extracted JSON as Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: daily-extracted-orders-${{ github.event.inputs.batch_date || 'yesterday' }}
+          name: daily-extracted-orders-${{ github.event.inputs.target_env || (github.event_name == 'schedule' && 'prod' || 'dev') }}-${{ github.event.inputs.batch_date || 'yesterday' }}
           path: landing_data/api_orders/
           retention-days: 90
           if-no-files-found: warn

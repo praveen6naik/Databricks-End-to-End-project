@@ -303,13 +303,17 @@ def main() -> int:
         help="Base directory for JSON output landing.",
     )
     parser.add_argument(
+        "--env",
+        type=str,
+        default=os.environ.get("TARGET_ENV", "dev").lower(),
+        choices=["dev", "prod", "qa"],
+        help="Target environment (dev | prod | qa). Defaults to dev.",
+    )
+    parser.add_argument(
         "--volume-target-path",
         type=str,
-        default=os.environ.get(
-            "DATABRICKS_VOLUME_PATH",
-            "bronze_prod/ecommerce/raw_landing/api_orders",
-        ),
-        help="Target Unity Catalog Volume path in Databricks (e.g. bronze_prod/ecommerce/raw_landing/api_orders).",
+        default=os.environ.get("DATABRICKS_VOLUME_PATH"),
+        help="Target Unity Catalog Volume path in Databricks (defaults to bronze_{env}/ecommerce/raw_landing/api_orders).",
     )
     parser.add_argument(
         "--upload-to-volume",
@@ -355,8 +359,12 @@ def main() -> int:
         newline_delimited=True,
     )
 
+    # Resolve volume target dynamically based on environment
+    volume_target = args.volume_target_path or f"bronze_{args.env}/ecommerce/raw_landing/api_orders"
+    logger.info(f"Target environment: {args.env.upper()} | Target Volume: {volume_target}")
+
     # If running directly inside Databricks runtime where /Volumes/ exists on OS
-    direct_volume_path = Path("/Volumes") / args.volume_target_path
+    direct_volume_path = Path("/Volumes") / volume_target
     if direct_volume_path.parent.exists():
         try:
             logger.info(f"Detected native Databricks environment. Mirroring to {direct_volume_path}...")
@@ -377,7 +385,7 @@ def main() -> int:
     if args.upload_to_volume or (db_host and db_token):
         if db_host and db_token:
             rel_partition = f"year={start_dt.year:04d}/month={start_dt.month:02d}/day={start_dt.day:02d}/{output_file.name}"
-            remote_volume_dest = f"{args.volume_target_path.rstrip('/')}/{rel_partition}"
+            remote_volume_dest = f"{volume_target.rstrip('/')}/{rel_partition}"
             upload_to_databricks_volume(
                 local_file_path=output_file,
                 databricks_host=db_host,
