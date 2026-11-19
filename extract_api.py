@@ -103,7 +103,7 @@ def generate_mock_records(start_dt: datetime, end_dt: datetime, count: int = 250
     for idx in range(1, count + 1):
         order_id = f"ORD-API-{date_str_compact}-{idx:04d}"
         cust_id = f"C{random.randint(10001, 15000)}"
-        prod_id = f"P{random.randint(1001, 1200)}"
+        prod_id = f"P{random.randint(1001, 1120)}"  # P1001-P1120 = actual product catalog range
         reg_id = random.randint(1, 8)
         quantity = random.choices([1, 2, 3, 4, 5], weights=[0.55, 0.25, 0.12, 0.05, 0.03])[0]
         unit_price = round(random.uniform(9.99, 499.99), 2)
