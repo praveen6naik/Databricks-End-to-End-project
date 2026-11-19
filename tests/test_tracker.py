@@ -10,6 +10,7 @@ from update_tracker import (
     generate_svg_area_chart,
     generate_svg_bar_chart,
     load_history,
+    main,
     merge_run_summary,
     render_html_dashboard,
     save_history,
@@ -125,6 +126,44 @@ class TestUpdateTracker(unittest.TestCase):
         self.assertIn("<svg", area_svg)
         self.assertIn("<path", area_svg)
         self.assertIn("<circle", area_svg)
+
+    def test_main_cli_execution_and_index_mirroring(self):
+        summary_path = Path(self.test_dir) / "summary.json"
+        history_path = Path(self.test_dir) / "history.json"
+        output_html_path = Path(self.test_dir) / "upload_tracker.html"
+        index_html_path = Path(self.test_dir) / "index.html"
+
+        summary_data = {
+            "target_date": "2026-11-19",
+            "environment": "prod",
+            "record_count": 500,
+            "file_size_bytes": 160000,
+            "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
+            "upload_status": "SUCCESS",
+            "file_name": "orders_2026-11-19.json",
+        }
+        with open(summary_path, "w", encoding="utf-8") as f:
+            json.dump(summary_data, f)
+
+        exit_code = main([
+            "--summary-file", str(summary_path),
+            "--history-file", str(history_path),
+            "--output-html", str(output_html_path),
+            "--run-id", "test-run-123",
+            "--trigger-type", "schedule"
+        ])
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(output_html_path.exists())
+        self.assertTrue(index_html_path.exists())
+
+        # Verify content matches
+        content_tracker = output_html_path.read_text(encoding="utf-8")
+        content_index = index_html_path.read_text(encoding="utf-8")
+        self.assertEqual(content_tracker, content_index)
+        self.assertIn("500", content_tracker)
+        self.assertIn("2026-11-19", content_tracker)
+        self.assertIn("156.25 KB", content_tracker)
 
 
 if __name__ == "__main__":

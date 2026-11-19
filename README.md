@@ -5,6 +5,7 @@
 [![Unity Catalog](https://img.shields.io/badge/Governance-Unity%20Catalog-0052CC)](https://docs.databricks.com/data-governance/unity-catalog/index.html)
 [![Auto Loader](https://img.shields.io/badge/Ingestion-Auto%20Loader%20(cloudFiles)-4285F4)](https://docs.databricks.com/ingestion/auto-loader/index.html)
 [![Power BI Ready](https://img.shields.io/badge/BI-Power%20BI%20Optimized-F2C811?logo=powerbi&logoColor=black)](https://powerbi.microsoft.com)
+[![Live Tracker Dashboard](https://img.shields.io/badge/Live_Dashboard-GitHub%20Pages-22c55e?logo=github&logoColor=white)](https://praveen6naik.github.io/Databricks-End-to-End-project/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 An enterprise-grade, production-ready **Medallion Architecture (Bronze $\rightarrow$ Silver $\rightarrow$ Gold)** data pipeline built on **Azure Databricks** with **Unity Catalog 3-Level Namespace** (`<catalog>.<schema>.<table>`) featuring **Multi-Environment Isolation (`dev` $\rightarrow$ `prod`)** and zero-copy Delta cloning. 
@@ -245,6 +246,7 @@ A continuous calendar from **2020-01-01 to 2030-12-31** (4,018 days) engineered 
 │   └── upload_history.json     # Continuous daily upload volume log database
 ├── update_tracker.py           # Automated daily volume tracker and HTML dashboard generator
 ├── upload_tracker.html         # Interactive daily upload volume tracking dashboard (updated daily)
+├── index.html                  # GitHub Pages root entrypoint (mirrors upload_tracker.html)
 ├── databricks_workflow.json    # Production multi-task Databricks Workflow job definition with cron
 ├── README.md                   # Complete architectural documentation & portfolio guide
 └── .gitignore                  # Standard Databricks / Python ignore rules
@@ -290,10 +292,11 @@ A continuous calendar from **2020-01-01 to 2030-12-31** (4,018 days) engineered 
    - Saves extracted JSON as 90-day build artifacts and optionally pushes directly to Databricks Volume when secrets `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are provided.
 
 ### Option 5: View Daily Databricks Upload Volume Tracker Dashboard
-The repository includes an interactive, self-contained dashboard: **[`upload_tracker.html`](upload_tracker.html)**.
-- **Automated Daily Updates**: After every daily scheduled run (06:00 UTC), GitHub Actions extracts data, updates `metrics/upload_history.json`, regenerates `upload_tracker.html`, and **automatically commits and pushes the updated report back to the repo**.
+The repository includes an interactive, self-contained dashboard served live on GitHub Pages:
+- 🌐 **Live GitHub Pages URL**: **[https://praveen6naik.github.io/Databricks-End-to-End-project/](https://praveen6naik.github.io/Databricks-End-to-End-project/)**
+- **Automated Daily Updates**: After every daily scheduled run (06:00 UTC), GitHub Actions extracts data, updates `metrics/upload_history.json`, regenerates both `index.html` (for GitHub Pages root) and `upload_tracker.html`, and **automatically commits and pushes the updated reports back to the repo**.
 - **Interactive Metrics**: Tracks cumulative records, total data volume (KB/MB), upload success rate, SVG trend charts, and a real-time searchable historical upload log table.
-- **How to View**: Open `upload_tracker.html` directly in any web browser, or enable GitHub Pages under your repository settings (**Settings $\rightarrow$ Pages $\rightarrow$ Deploy from branch: main**) to host it live for free!
+- **Offline / Local Access**: You can also open [`index.html`](index.html) or [`upload_tracker.html`](upload_tracker.html) directly in any web browser without any web server or external dependencies.
 
 ---
 

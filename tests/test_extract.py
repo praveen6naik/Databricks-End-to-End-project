@@ -81,7 +81,8 @@ class TestExtractAPI(unittest.TestCase):
         import sys
         
         # Test CLI argument parsing with --env dev
-        test_args = ["extract_api.py", "--date", "2026-10-22", "--env", "dev", "--output-dir", self.test_dir]
+        test_summary = str(Path(self.test_dir) / "test_summary.json")
+        test_args = ["extract_api.py", "--date", "2026-10-22", "--env", "dev", "--output-dir", self.test_dir, "--summary-file", test_summary]
         orig_argv = sys.argv
         try:
             sys.argv = test_args

@@ -13,7 +13,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logging.basicConfig(
     level=logging.INFO,
@@ -631,14 +631,14 @@ def render_html_dashboard(history: List[Dict[str, Any]], generated_at: datetime)
     return html_content
 
 
-def main() -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Update daily Databricks upload tracker and regenerate HTML dashboard.")
     parser.add_argument("--summary-file", type=str, default="metrics/latest_run_summary.json", help="Path to latest run summary JSON.")
     parser.add_argument("--history-file", type=str, default="metrics/upload_history.json", help="Path to historical uploads JSON database.")
     parser.add_argument("--output-html", type=str, default="upload_tracker.html", help="Path to output HTML dashboard.")
     parser.add_argument("--run-id", type=str, default="", help="GitHub Action run ID or execution ID.")
     parser.add_argument("--trigger-type", type=str, default="", help="Trigger type (schedule | workflow_dispatch | manual).")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     history_file = Path(args.history_file)
     summary_file = Path(args.summary_file)
@@ -667,7 +667,12 @@ def main() -> int:
     with open(output_html_file, "w", encoding="utf-8") as f:
         f.write(html_dashboard)
 
-    logger.info(f"Successfully generated upload volume tracker dashboard: {output_html_file}")
+    # Mirror to index.html for direct GitHub Pages root URL serving
+    index_file = output_html_file.parent / "index.html"
+    with open(index_file, "w", encoding="utf-8") as f:
+        f.write(html_dashboard)
+
+    logger.info(f"Successfully generated upload volume tracker dashboard: {output_html_file} and {index_file}")
     return 0
 
 
