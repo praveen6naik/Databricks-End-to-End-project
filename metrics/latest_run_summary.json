@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-11-19T21:17:19.919303+00:00",
-  "target_date": "2026-10-22",
+  "timestamp": "2026-11-19T21:20:28.912065+00:00",
+  "target_date": "2026-11-18",
   "environment": "dev",
   "record_count": 250,
-  "file_size_bytes": 79788,
-  "file_size_formatted": "77.92 KB",
+  "file_size_bytes": 79438,
+  "file_size_formatted": "77.58 KB",
   "volume_target": "bronze_dev/ecommerce/raw_landing/api_orders",
   "upload_status": "STAGED_LOCAL",
-  "file_name": "orders_2026-10-22.json",
-  "relative_path": "C:\\Users\\Praveen\\AppData\\Local\\Temp\\tmpibz4gz56\\year=2026\\month=10\\day=22\\orders_2026-10-22.json"
+  "file_name": "orders_2026-11-18.json",
+  "relative_path": "landing_data/api_orders/year=2026/month=11/day=18/orders_2026-11-18.json"
 }

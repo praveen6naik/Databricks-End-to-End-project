@@ -63,5 +63,18 @@
     "upload_status": "SUCCESS",
     "trigger_type": "schedule",
     "file_name": "orders_2026-11-18.json"
+  },
+  {
+    "run_id": "44617715635",
+    "timestamp": "2026-11-19T21:20:28.912065+00:00",
+    "target_date": "2026-11-18",
+    "environment": "dev",
+    "record_count": 250,
+    "file_size_bytes": 79438,
+    "file_size_formatted": "77.58 KB",
+    "volume_target": "bronze_dev/ecommerce/raw_landing/api_orders",
+    "upload_status": "STAGED_LOCAL",
+    "trigger_type": "workflow_dispatch",
+    "file_name": "orders_2026-11-18.json"
   }
 ]
