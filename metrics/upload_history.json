@@ -1,0 +1,67 @@
+[
+  {
+    "run_id": "43719798243",
+    "timestamp": "2026-11-15T13:35:45Z",
+    "target_date": "2026-11-14",
+    "environment": "prod",
+    "record_count": 250,
+    "file_size_bytes": 79420,
+    "file_size_formatted": "77.56 KB",
+    "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
+    "upload_status": "SUCCESS",
+    "trigger_type": "schedule",
+    "file_name": "orders_2026-11-14.json"
+  },
+  {
+    "run_id": "43892378899",
+    "timestamp": "2026-11-16T15:04:22Z",
+    "target_date": "2026-11-15",
+    "environment": "prod",
+    "record_count": 250,
+    "file_size_bytes": 79654,
+    "file_size_formatted": "77.79 KB",
+    "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
+    "upload_status": "SUCCESS",
+    "trigger_type": "schedule",
+    "file_name": "orders_2026-11-15.json"
+  },
+  {
+    "run_id": "44116519729",
+    "timestamp": "2026-11-17T15:38:05Z",
+    "target_date": "2026-11-16",
+    "environment": "prod",
+    "record_count": 250,
+    "file_size_bytes": 79512,
+    "file_size_formatted": "77.65 KB",
+    "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
+    "upload_status": "SUCCESS",
+    "trigger_type": "schedule",
+    "file_name": "orders_2026-11-16.json"
+  },
+  {
+    "run_id": "44333674812",
+    "timestamp": "2026-11-18T15:16:34Z",
+    "target_date": "2026-11-17",
+    "environment": "prod",
+    "record_count": 250,
+    "file_size_bytes": 79780,
+    "file_size_formatted": "77.91 KB",
+    "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
+    "upload_status": "SUCCESS",
+    "trigger_type": "schedule",
+    "file_name": "orders_2026-11-17.json"
+  },
+  {
+    "run_id": "44554130494",
+    "timestamp": "2026-11-19T15:23:08Z",
+    "target_date": "2026-11-18",
+    "environment": "prod",
+    "record_count": 250,
+    "file_size_bytes": 79688,
+    "file_size_formatted": "77.82 KB",
+    "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
+    "upload_status": "SUCCESS",
+    "trigger_type": "schedule",
+    "file_name": "orders_2026-11-18.json"
+  }
+]

@@ -29,11 +29,13 @@ jobs:
     name: Extract Previous-Day Records & Stage
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout Code Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -65,7 +67,17 @@ jobs:
             --date "${BATCH_DATE}" \
             --env "${TARGET_ENV}" \
             --output-dir "./landing_data/api_orders" \
+            --summary-file "metrics/latest_run_summary.json" \
             ${{ (github.event.inputs.upload_to_databricks == 'true' || github.event_name == 'schedule') && '--upload-to-volume' || '' }}
+
+      - name: Update Upload Volume Tracker Dashboard
+        run: |
+          python update_tracker.py \
+            --summary-file metrics/latest_run_summary.json \
+            --history-file metrics/upload_history.json \
+            --output-html upload_tracker.html \
+            --run-id "${{ github.run_id }}" \
+            --trigger-type "${{ github.event_name }}"
 
       - name: Upload Extracted JSON as Workflow Artifact
         uses: actions/upload-artifact@v4
@@ -74,3 +86,16 @@ jobs:
           path: landing_data/api_orders/
           retention-days: 90
           if-no-files-found: warn
+
+      - name: Commit and Push Updated Tracker Dashboard
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add upload_tracker.html metrics/upload_history.json metrics/latest_run_summary.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(metrics): update daily upload volume tracker [skip ci]"
+            git pull --rebase origin ${{ github.ref_name }} || true
+            git push origin ${{ github.ref_name }}
+          else
+            echo "No changes in tracker report to commit."
+          fi

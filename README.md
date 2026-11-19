@@ -239,7 +239,12 @@ A continuous calendar from **2020-01-01 to 2030-12-31** (4,018 days) engineered 
 ├── extract_api.py              # Standalone resilient Python REST API extractor (requests + retries)
 ├── requirements.txt            # Python dependencies (requests, python-dateutil, python-dotenv)
 ├── tests/
-│   └── test_extract.py         # Unit tests for date windowing, mock generator, and NDJSON writing
+│   ├── test_extract.py         # Unit tests for date windowing, mock generator, and NDJSON writing
+│   └── test_tracker.py         # Unit tests for upload volume tracker metrics and HTML rendering
+├── metrics/
+│   └── upload_history.json     # Continuous daily upload volume log database
+├── update_tracker.py           # Automated daily volume tracker and HTML dashboard generator
+├── upload_tracker.html         # Interactive daily upload volume tracking dashboard (updated daily)
 ├── databricks_workflow.json    # Production multi-task Databricks Workflow job definition with cron
 ├── README.md                   # Complete architectural documentation & portfolio guide
 └── .gitignore                  # Standard Databricks / Python ignore rules
@@ -283,6 +288,12 @@ A continuous calendar from **2020-01-01 to 2030-12-31** (4,018 days) engineered 
    - Configured in `.github/workflows/daily_extract.yml`.
    - Runs automatically on cron `0 6 * * *` or via manual **Run workflow** in the GitHub Actions tab.
    - Saves extracted JSON as 90-day build artifacts and optionally pushes directly to Databricks Volume when secrets `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are provided.
+
+### Option 5: View Daily Databricks Upload Volume Tracker Dashboard
+The repository includes an interactive, self-contained dashboard: **[`upload_tracker.html`](upload_tracker.html)**.
+- **Automated Daily Updates**: After every daily scheduled run (06:00 UTC), GitHub Actions extracts data, updates `metrics/upload_history.json`, regenerates `upload_tracker.html`, and **automatically commits and pushes the updated report back to the repo**.
+- **Interactive Metrics**: Tracks cumulative records, total data volume (KB/MB), upload success rate, SVG trend charts, and a real-time searchable historical upload log table.
+- **How to View**: Open `upload_tracker.html` directly in any web browser, or enable GitHub Pages under your repository settings (**Settings $\rightarrow$ Pages $\rightarrow$ Deploy from branch: main**) to host it live for free!
 
 ---
 

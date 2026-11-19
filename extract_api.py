@@ -321,6 +321,12 @@ def main() -> int:
         default=os.environ.get("UPLOAD_TO_VOLUME", "false").lower() in ("true", "1", "yes"),
         help="Whether to upload output JSON to Databricks Volume via REST API.",
     )
+    parser.add_argument(
+        "--summary-file",
+        type=str,
+        default=os.environ.get("SUMMARY_FILE", "metrics/latest_run_summary.json"),
+        help="Path to write the execution summary JSON file.",
+    )
 
     args = parser.parse_args()
 
@@ -381,19 +387,52 @@ def main() -> int:
     # Optional: Push to Databricks Volume via REST API if configured
     db_host = os.environ.get("DATABRICKS_HOST")
     db_token = os.environ.get("DATABRICKS_TOKEN")
+    upload_status = "STAGED_LOCAL"
 
     if args.upload_to_volume or (db_host and db_token):
         if db_host and db_token:
             rel_partition = f"year={start_dt.year:04d}/month={start_dt.month:02d}/day={start_dt.day:02d}/{output_file.name}"
             remote_volume_dest = f"{volume_target.rstrip('/')}/{rel_partition}"
-            upload_to_databricks_volume(
+            upload_success = upload_to_databricks_volume(
                 local_file_path=output_file,
                 databricks_host=db_host,
                 databricks_token=db_token,
                 volume_path=remote_volume_dest,
             )
+            upload_status = "SUCCESS" if upload_success else "FAILED"
         else:
             logger.warning("Upload to volume requested but DATABRICKS_HOST or DATABRICKS_TOKEN is missing.")
+            upload_status = "STAGED_LOCAL"
+
+    file_size_bytes = output_file.stat().st_size
+    if file_size_bytes < 1024:
+        file_size_fmt = f"{file_size_bytes} B"
+    elif file_size_bytes < 1024 * 1024:
+        file_size_fmt = f"{file_size_bytes / 1024:.2f} KB"
+    else:
+        file_size_fmt = f"{file_size_bytes / (1024 * 1024):.2f} MB"
+
+    if args.summary_file:
+        try:
+            summary_path = Path(args.summary_file)
+            summary_path.parent.mkdir(parents=True, exist_ok=True)
+            summary_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "target_date": date_str,
+                "environment": args.env,
+                "record_count": len(records),
+                "file_size_bytes": file_size_bytes,
+                "file_size_formatted": file_size_fmt,
+                "volume_target": volume_target,
+                "upload_status": upload_status,
+                "file_name": output_file.name,
+                "relative_path": str(output_file),
+            }
+            with open(summary_path, "w", encoding="utf-8") as sf:
+                json.dump(summary_data, sf, indent=2)
+            logger.info(f"Execution summary saved to {summary_path}")
+        except Exception as exc:
+            logger.warning(f"Failed to write summary file: {exc}")
 
     logger.info(f"Pipeline extraction stage complete for {date_str}. Total records processed: {len(records)}")
     return 0
