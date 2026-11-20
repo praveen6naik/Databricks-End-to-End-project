@@ -23,8 +23,8 @@ flowchart TD
         DBW["Databricks Workflows Quartz Cron<br/><i>(Enterprise Lakehouse Job)</i>"]
     end
 
-    subgraph Extraction["Daily REST API Extraction"]
-        EXT["<b>extract_api.py / 01_Extract_API_Task.ipynb</b><br/>• Filters: created_at >= yesterday<br/>• Resilient requests.Session (429/5xx backoff)<br/>• Partitioned JSON output (year/month/day)"]
+    subgraph Extraction["Daily REST API & Event Extraction"]
+        EXT["<b>extract_api.py / 01_Extract_API_Task.ipynb</b><br/>• Dynamic Volume & Day-of-Week Seasonality<br/>• Multi-Line Items, Payments, Carrier Tracking<br/>• Order Lifecycle CDC Transitions (PENDING -> DELIVERED)<br/>• Live ECB FX Rates & DummyJSON Connectors<br/>• Resilient requests.Session (429/5xx backoff)"]
     end
 
     subgraph DataGen["00. Synthetic Baseline Generator"]
@@ -284,12 +284,23 @@ A continuous calendar from **2020-01-01 to 2030-12-31** (4,018 days) engineered 
 1. **Local CLI Execution**:
    ```bash
    pip install -r requirements.txt
+
+   # 1. Standard dynamic daily extraction with weekend/weekday seasonality:
    python extract_api.py --date yesterday --output-dir ./landing_data/api_orders
+
+   # 2. Extract with custom base volume and specific date:
+   python extract_api.py --date 2026-11-20 --base-volume 500 --env prod
+
+   # 3. Connect to live public e-commerce API (DummyJSON) with automatic failover:
+   python extract_api.py --date yesterday --api-url live
+
+   # 4. Include daily foreign exchange rates (European Central Bank via Frankfurter):
+   python extract_api.py --date yesterday --include-fx-rates
    ```
 2. **GitHub Actions (Automated Daily 6:00 AM UTC)**:
    - Configured in `.github/workflows/daily_extract.yml`.
    - Runs automatically on cron `0 6 * * *` or via manual **Run workflow** in the GitHub Actions tab.
-   - Saves extracted JSON as 90-day build artifacts and optionally pushes directly to Databricks Volume when secrets `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are provided.
+   - Extracts realistic daily e-commerce data, lands companion ECB foreign exchange rates, saves JSON as 90-day build artifacts, and pushes directly to Databricks Volume when secrets `DATABRICKS_HOST` and `DATABRICKS_TOKEN` are provided.
 
 ### Option 5: View Daily Databricks Upload Volume Tracker Dashboard
 The repository includes an interactive, self-contained dashboard served live on GitHub Pages:
