@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-11-21T14:21:34.645155+00:00",
-  "target_date": "2026-11-20",
+  "timestamp": "2026-11-22T14:13:18.382752+00:00",
+  "target_date": "2026-11-21",
   "environment": "prod",
-  "record_count": 522,
-  "file_size_bytes": 713833,
-  "file_size_formatted": "697.10 KB",
+  "record_count": 590,
+  "file_size_bytes": 805465,
+  "file_size_formatted": "786.59 KB",
   "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
   "upload_status": "STAGED_LOCAL",
-  "file_name": "orders_2026-11-20.json",
-  "relative_path": "landing_data/api_orders/year=2026/month=11/day=20/orders_2026-11-20.json"
+  "file_name": "orders_2026-11-21.json",
+  "relative_path": "landing_data/api_orders/year=2026/month=11/day=21/orders_2026-11-21.json"
 }
