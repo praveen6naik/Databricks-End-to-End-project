@@ -154,5 +154,18 @@
     "upload_status": "STAGED_LOCAL",
     "trigger_type": "schedule",
     "file_name": "orders_2026-11-25.json"
+  },
+  {
+    "run_id": "46032344508",
+    "timestamp": "2026-11-27T16:17:43.915927+00:00",
+    "target_date": "2026-11-26",
+    "environment": "prod",
+    "record_count": 456,
+    "file_size_bytes": 621996,
+    "file_size_formatted": "607.42 KB",
+    "volume_target": "bronze_prod/ecommerce/raw_landing/api_orders",
+    "upload_status": "STAGED_LOCAL",
+    "trigger_type": "schedule",
+    "file_name": "orders_2026-11-26.json"
   }
 ]
